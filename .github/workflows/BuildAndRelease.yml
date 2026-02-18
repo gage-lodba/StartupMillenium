@@ -9,23 +9,10 @@ on:
       - 'Cargo.toml'
 
 jobs:
-  build:
-    name: ${{ matrix.os }} build
-    runs-on: ${{ matrix.os }}
-
-    strategy:
-      fail-fast: true
-
-      matrix:
-        os: [ubuntu-latest, windows-latest]
-        include:
-          - os: ubuntu-latest
-            path: target/release/sm
-          - os: windows-latest
-            path: target/release/sm.exe
-        
+  windows:
+    runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Lint
         run: cargo clippy
@@ -37,26 +24,46 @@ jobs:
         run: cargo test
       
       - name: Upload Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
-          name: ${{ matrix.os }}
-          path: ${{ matrix.path }}
+          name: windows-latest
+          path: build/Release/startup-millenium.exe
+
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Lint
+        run: cargo clippy
+
+      - name: Build
+        run: cargo build --release
+
+      - name: Test
+        run: cargo test
+      
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: ubuntu-latest
+          path: build/Release/startup-millenium
 
   release:
     name: Release
-    runs-on: [ubuntu-latest]
-    needs: [build]
+    runs-on: ubuntu-latest
+    needs: [windows, linux]
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Download Linux Artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: ubuntu-latest
 
       - name: Download Windows Artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: windows-latest
 
@@ -69,5 +76,5 @@ jobs:
             **This release has been built by Github Actions**
             [Link to build](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
           files: |
-            sm
-            sm.exe
+            startup-millenium
+            startup-millenium.exe
