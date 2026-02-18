@@ -27,7 +27,7 @@ jobs:
         uses: actions/upload-artifact@v6
         with:
           name: windows-latest
-          path: build/Release/startup-millenium.exe
+          path: build/startup-millenium.exe
 
   linux:
     runs-on: ubuntu-latest
@@ -47,7 +47,7 @@ jobs:
         uses: actions/upload-artifact@v6
         with:
           name: ubuntu-latest
-          path: build/Release/startup-millenium
+          path: build/startup-millenium
 
   release:
     name: Release
