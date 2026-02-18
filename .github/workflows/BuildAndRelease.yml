@@ -10,7 +10,7 @@ on:
 
 jobs:
   windows:
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
 
@@ -21,7 +21,12 @@ jobs:
         run: cargo test
 
       - name: Build
-        run: cargo build --release
+        run: |
+          rustup set default-host x86_64-pc-windows-gnu
+          rustup toolchain install stable-gnu
+          rustup target add x86_64-pc-windows-gnu
+          cargo build --target x86_64-pc-windows-gnu
+      
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v6
