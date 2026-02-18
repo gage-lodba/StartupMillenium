@@ -36,10 +36,12 @@ async fn main() {
                 "Failed to start process (attempt {}): {e}",
                 successes + failures
             );
+
             if failures >= 3 {
                 eprintln!("Too many consecutive failures, aborting.");
                 return;
             }
+
             tokio::time::sleep(std::time::Duration::from_secs(5)).await;
             continue;
         }
