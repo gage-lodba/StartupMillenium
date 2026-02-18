@@ -57,15 +57,8 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - name: Download Linux Artifact
+      - name: Download artifacts
         uses: actions/download-artifact@v7
-        with:
-          name: ubuntu-latest
-
-      - name: Download Windows Artifact
-        uses: actions/download-artifact@v7
-        with:
-          name: windows-latest
 
       - name: Release Build
         uses: softprops/action-gh-release@v2
