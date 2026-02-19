@@ -22,6 +22,8 @@ jobs:
 
       - name: Build
         run: |
+          sudo apt update
+          sudo apt install mingw-w64
           rustup set default-host x86_64-pc-windows-gnu
           rustup toolchain install stable-gnu
           rustup target add x86_64-pc-windows-gnu
@@ -32,7 +34,7 @@ jobs:
         uses: actions/upload-artifact@v6
         with:
           name: windows-latest
-          path: build/startup-millenium.exe
+          path: target/x86_64-pc-windows-gnu/release/startup-millenium.exe
 
   linux:
     runs-on: ubuntu-latest
@@ -46,13 +48,15 @@ jobs:
         run: cargo test
 
       - name: Build
-        run: cargo build --release
+        run: |
+          sudo apt update
+          cargo build --release
       
       - name: Upload Artifact
         uses: actions/upload-artifact@v6
         with:
           name: ubuntu-latest
-          path: build/startup-millenium
+          path: target/release/startup-millenium
 
   release:
     name: Release
