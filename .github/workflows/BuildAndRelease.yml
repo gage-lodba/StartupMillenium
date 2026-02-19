@@ -28,7 +28,7 @@ jobs:
           rustup toolchain install stable-gnu
           rustup target add x86_64-pc-windows-gnu
           cargo build --target x86_64-pc-windows-gnu
-          mv target/x86_64-pc-windows-gnu/release/startup-millenium target/x86_64-pc-windows-gnu/release/startup-millenium.exe
+          mv target/x86_64-pc-windows-gnu/startup-millenium target/x86_64-pc-windows-gnu/startup-millenium.exe
       
 
       - name: Upload Artifact
