@@ -28,14 +28,14 @@ impl Default for Settings {
         #[cfg(target_os = "linux")]
         {
             Self {
-                game_path: PathBuf::from("<hl2_linux>"),
+                game_path: PathBuf::from("hl2_linux"),
             }
         }
 
         #[cfg(target_os = "macos")]
         {
             Self {
-                game_path: PathBuf::from("<hl2.sh>"),
+                game_path: PathBuf::from("hl2.sh"),
             }
         }
     }
