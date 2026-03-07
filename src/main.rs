@@ -5,16 +5,16 @@ mod tests;
 
 use config::Settings;
 use process::Process;
-use tokio::io::AsyncBufReadExt;
 
 #[tokio::main]
 async fn main() {
-    if let Err(e) = Settings::initialize().await {
-        eprintln!("Failed to load config: {e}");
-        return;
-    }
-
-    let settings = Settings::get_settings().clone();
+    let settings = match Settings::initialize().await {
+        Ok(s) => s,
+        Err(e) => {
+            eprintln!("Failed to load config: {e}");
+            return;
+        }
+    };
 
     if !settings.game_path.exists() {
         eprintln!(
@@ -29,13 +29,12 @@ async fn main() {
 
     let mut successes = 0;
     let mut failures = 0;
+    let mut total_attempts = 0;
     while successes < 1000 {
+        total_attempts += 1;
         if let Err(e) = process.start().await {
             failures += 1;
-            eprintln!(
-                "Failed to start process (attempt {}): {e}",
-                successes + failures
-            );
+            eprintln!("Failed to start process (attempt {total_attempts}): {e}");
 
             if failures >= 3 {
                 eprintln!("Too many consecutive failures, aborting.");
@@ -53,9 +52,4 @@ async fn main() {
     }
 
     println!("Finished");
-
-    let mut input = String::new();
-    let _ = tokio::io::BufReader::new(tokio::io::stdin())
-        .read_line(&mut input)
-        .await;
 }

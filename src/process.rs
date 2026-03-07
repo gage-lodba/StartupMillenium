@@ -115,13 +115,14 @@ impl Process {
         // Give the launcher a moment to spawn the real game process
         tokio::time::sleep(Duration::from_secs(IDLE_POLL_INTERVAL_SECS)).await;
 
+        // Initial full refresh to discover game processes
+        system.refresh_processes(ProcessesToUpdate::All, true);
+
         loop {
             if start_time.elapsed() >= timeout {
                 eprintln!("Timed out waiting for process to idle.");
                 break;
             }
-
-            system.refresh_processes(ProcessesToUpdate::All, true);
 
             let game_pids = self.find_game_pids(&system);
 
@@ -129,6 +130,10 @@ impl Process {
             if game_pids.is_empty() {
                 break;
             }
+
+            // Refresh only the processes we care about
+            let pids_to_update: Vec<Pid> = game_pids.clone();
+            system.refresh_processes(ProcessesToUpdate::Some(&pids_to_update), true);
 
             // Sum CPU usage across all matching game processes
             let total_cpu: f32 = game_pids
