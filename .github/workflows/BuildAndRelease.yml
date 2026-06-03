@@ -2,81 +2,90 @@ name: Build and Release
 
 on:
   push:
-    branches:
-      - master
-    paths:
-      - '.github/workflows/*'
-      - 'src/*'
-      - 'Cargo.toml'
+    branches: [master]
+    tags: ['v*']
+  pull_request:
+
+# Cancel superseded runs for the same ref (each tag is a unique ref, so an
+# in-progress release is never cancelled by another tag).
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  windows:
+  check:
+    name: Lint & Test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-
-      - name: Lint
-        run: cargo clippy
-
-      - name: Test
-        run: cargo test
-
-      - name: Build
-        run: |
-          sudo apt update
-          sudo apt install mingw-w64
-          rustup set default-host x86_64-pc-windows-gnu
-          rustup toolchain install stable-gnu
-          rustup target add x86_64-pc-windows-gnu
-          cargo build --target x86_64-pc-windows-gnu --release
-      
-      - name: Upload Artifact
-        uses: actions/upload-artifact@v6
+      - uses: dtolnay/rust-toolchain@stable
         with:
-          name: windows-latest
-          path: target/x86_64-pc-windows-gnu/release/startup-millenium.exe
+          components: rustfmt, clippy
+          targets: x86_64-pc-windows-gnu
+      - uses: Swatinem/rust-cache@v2
+      - name: Format
+        run: cargo fmt --all -- --check
+      - name: Lint (host)
+        run: cargo clippy --all-targets --locked -- -D warnings
+      # The host lint above only sees the Linux cfg paths; lint the Windows
+      # target too so the `#[cfg(not(target_os = "linux"))]` code is covered.
+      - name: Lint (windows-gnu cfg)
+        run: cargo clippy --target x86_64-pc-windows-gnu --all-targets --locked -- -D warnings
+      - name: Test
+        run: cargo test --locked
 
-  linux:
+  build-linux:
+    name: Build (Linux)
+    needs: check
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-
-      - name: Lint
-        run: cargo clippy
-
-      - name: Test
-        run: cargo test
-
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
       - name: Build
-        run: |
-          sudo apt update
-          cargo build --release
-      
-      - name: Upload Artifact
-        uses: actions/upload-artifact@v6
+        run: cargo build --release --locked
+      - uses: actions/upload-artifact@v7
         with:
           name: ubuntu-latest
           path: target/release/startup-millenium
 
-  release:
-    name: Release
+  build-windows:
+    name: Build (Windows)
+    needs: check
     runs-on: ubuntu-latest
-    needs: [windows, linux]
-
     steps:
       - uses: actions/checkout@v6
-
-      - name: Download artifacts
-        uses: actions/download-artifact@v7
-
-      - name: Release Build
-        uses: softprops/action-gh-release@v2
+      - uses: dtolnay/rust-toolchain@stable
         with:
-          name: Release
-          tag_name: ${{ github.run_id }}
-          body: |
-            **This release has been built by Github Actions**
-            [Link to build](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+          targets: x86_64-pc-windows-gnu
+      - uses: Swatinem/rust-cache@v2
+      - name: Install MinGW linker
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y mingw-w64
+      - name: Build
+        run: cargo build --release --locked --target x86_64-pc-windows-gnu
+      - uses: actions/upload-artifact@v7
+        with:
+          name: windows-latest
+          path: target/x86_64-pc-windows-gnu/release/startup-millenium.exe
+
+  release:
+    name: Release
+    needs: [build-linux, build-windows]
+    # Only publish a release when a v* tag is pushed.
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+      - name: Publish release
+        uses: softprops/action-gh-release@v3
+        with:
+          name: ${{ github.ref_name }}
+          tag_name: ${{ github.ref_name }}
+          generate_release_notes: true
           files: |
             ubuntu-latest/startup-millenium
             windows-latest/startup-millenium.exe
